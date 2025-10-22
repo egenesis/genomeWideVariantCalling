@@ -369,8 +369,6 @@ wide[, filt_call_category := fcase(
 # Remove all columns with *pass* in them
 pass_cols <- grep("_pass_", names(wide), value = TRUE)
 wide[, (pass_cols) := NULL]
-#thr_cols <- c("dp_thr","gq_thr","ar_min_thr","ar_max_thr","ad_thr","qual_thr")
-#wide[, (thr_cols) := NULL]
 
 ### Define updated sample-specific variants ###
 wide <- wide %>% 

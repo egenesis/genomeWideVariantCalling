@@ -4,27 +4,21 @@ library(stringr)
 
 setwd("~/Library/CloudStorage/OneDrive-eGenesisBio/Computational Biology Team/Sanaz/GenomeWideVariantCalling/Rscripts")
 
-table_cl <- fread("clair3_MCB_MasterTable.csv") 
-table_dv <- fread("DeepVariant_MCB_MasterTable.csv") 
+table_cl_old <- fread("Results/clair3_MCB_MasterTable.csv")
+table_dv_old <- fread("Results/DeepVariant_MCB_MasterTable.csv")
+table_cl <- fread("Results/Clair3_MCB_MasterTable_simplified.csv") 
+table_dv <- fread("Results/DeepVariant_MCB_MasterTable_simplified.csv") 
 
 ##### MCB-specific unfiltered #####
-MCB_only_unfiltered_Clair3 <- table_cl[sample_specificity_mod == "MCB_specific", .(variant_id)]
-MCB_only_unfiltered_DV <- table_dv[sample_specificity_mod == "MCB_specific", .(variant_id)]
+MCB_only_unfiltered_Clair3 <- table_cl[MCB_specific == TRUE, .(variant_id)]
+MCB_only_unfiltered_DV <- table_dv[MCB_specific == TRUE, .(variant_id)]
 
 ##### QUAL metric filters applied #####
-MCB_only_qualmetric_filtered_Clair3 <- table_cl[
-  gt_GT_Yuc104F_mod %in% c("0/0","./.", "0/.", "./0") & 
-    !gt_GT_MCB_mod  %in% c("0/0","./.","0/.", "./0") &
-    `MCB_filter` == TRUE,
-  .(variant_id)
-]
-MCB_only_qualmetric_filtered_DV <- table_dv[
-  gt_GT_Yuc104F_mod %in% c("0/0","./.", "0/.", "./0") & 
-    !gt_GT_MCB_mod  %in% c("0/0","./.","0/.", "./0") &
-    `MCB_filter` == TRUE,
-  .(variant_id)
-]
+MCB_only_qualmetric_filtered_Clair3 <- table_cl[MCB_specific == TRUE & MCB_filter == TRUE,
+  .(variant_id) ]
 
+MCB_only_qualmetric_filtered_DV <- table_dv[MCB_specific == TRUE & MCB_filter == TRUE,
+  .(variant_id) ]
 
 ##### + Sequence feature filters #####
 MCB_only_qualmetric_seqfeat_filtered_Clair3 <- table_cl[
