@@ -76,8 +76,8 @@ step3 <- union(MCB_only_qualmetric_filtered_Clair3$variant_id, MCB_only_qualmetr
 step4 <- union(MCB_only_qualmetric_seqfeat_filtered_Clair3$variant_id, MCB_only_qualmetric_seqfeat_filtered_DV$variant_id)
 step5 <- Reduce(union, list(MCB_only_qualmetric_seqfeat_filtered_in_exon_UTR_PC_Clair3$variant_id, MCB_only_qualmetric_seqfeat_filtered_in_exon_UTR_PC_DV$variant_id,
                MCB_only_qualmetric_seqfeat_filtered_in_intron_PC_Clair3$variant_id, MCB_only_qualmetric_seqfeat_filtered_in_intron_PC_DV$variant_id))
-step6 <- union(MCB_only_qualmetric_seqfeat_filtered_in_exon_UTR_PC_Clair3$variant_id, MCB_only_qualmetric_seqfeat_filtered_in_exon_UTR_PC_DV$variant_id)
-step7 <- union(MCB_only_qualmetric_seqfeat_filtered_in_intron_PC_Clair3$variant_id, MCB_only_qualmetric_seqfeat_filtered_in_intron_PC_DV$variant_id)
+step6_exon <- union(MCB_only_qualmetric_seqfeat_filtered_in_exon_UTR_PC_Clair3$variant_id, MCB_only_qualmetric_seqfeat_filtered_in_exon_UTR_PC_DV$variant_id)
+step7_intron <- union(MCB_only_qualmetric_seqfeat_filtered_in_intron_PC_Clair3$variant_id, MCB_only_qualmetric_seqfeat_filtered_in_intron_PC_DV$variant_id)
 
 message('Union results MCB - Clair3 + DeepVariant')
 message("#Variants Raw, unfiltered: ", length(step1))
@@ -85,8 +85,8 @@ message("#Variants after Quality filtered: ", length(step2))
 message("#Variants MCB-specific, Quality filtered: ", length(step3))
 message("#Variants MCB-specific, Quality filtered, Region filtered: ", length(step4))
 message("#Variants MCB-specific, Quality filtered, Region filtered, PC genes: ", length(step5))
-message("#Variants MCB-specific, Quality filtered, Region filtered, PC exon/UTR: ", length(step6))
-message("#Variants MCB-specific, Quality filtered, Region filtered, PC intron: ", length(step7))
+message("#Variants MCB-specific, Quality filtered, Region filtered, PC exon/UTR: ", length(step6_exon))
+message("#Variants MCB-specific, Quality filtered, Region filtered, PC intron: ", length(step7_intron))
 
 #~~~~~~~~~~~~~~#
 #### Prepare VEP ready inputs #####
@@ -95,7 +95,7 @@ message("#Variants MCB-specific, Quality filtered, Region filtered, PC intron: "
 ### Exonic ###
 
 # Parse the variant IDs
-exons_parsed <- tstrsplit(MCB_only_qualmetric_seqfeat_filtered_in_exon_UTR_PC_Union, "_", fixed = TRUE)
+exons_parsed <- tstrsplit(step6_exon, "_", fixed = TRUE)
 
 # Assign to columns
 chrom <- exons_parsed[[1]]
@@ -119,7 +119,7 @@ vep_df_exon <- data.frame(
   end = end,
   allele = allele,
   strand = strand,
-  identifier = MCB_only_qualmetric_seqfeat_filtered_in_exon_UTR_PC_Union,
+  identifier = step6_exon,
   stringsAsFactors = FALSE
 )
 
@@ -129,7 +129,7 @@ fwrite(vep_df_exon, file = "MCB-union_exon-UTR_PC_vep_input.txt", sep = " ", col
 ### Intronic ###
 
 # Parse the variant IDs
-introns_parsed <- tstrsplit(MCB_only_qualmetric_seqfeat_filtered_in_intron_PC_Union, "_", fixed = TRUE)
+introns_parsed <- tstrsplit(step7_intron, "_", fixed = TRUE)
 
 # Assign to columns
 chrom <- introns_parsed[[1]]
@@ -152,7 +152,7 @@ vep_df_intron <- data.frame(
   end = end,
   allele = allele,
   strand = strand,
-  identifier = MCB_only_qualmetric_seqfeat_filtered_in_intron_PC_Union,
+  identifier = step7_intron,
   stringsAsFactors = FALSE
 )
 
