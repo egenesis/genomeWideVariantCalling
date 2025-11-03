@@ -198,7 +198,7 @@ for(i in seq_along(gt_cols)) {
   col_filt  <- paste0(suffs[i], "_filter")
   col_mod   <- paste0(col_gt, "_mod")
   
-  wide[, (col_mod) := fifelse( get(col_filt), get(col_gt), "./.")]
+  wide[, (col_mod) := fifelse( get(col_filt), get(col_gt), "./.")]. # if pass then use original genotype, else put ./.
 }
 
 
