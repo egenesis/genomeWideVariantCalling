@@ -11,45 +11,47 @@ library(tidyr)
 setwd("~/Library/CloudStorage/OneDrive-eGenesisBio/Computational Biology Team/Sanaz/GenomeWideVariantCalling/Rscripts")
 
 
-clair3_vcf <- read.vcfR("Inputfiles/deepvariant.cohort.biallelic.norm.vcf.gz")
-# clair3_vcf <- clair3_vcf[1:10000, ]
+sample <- "MCB"
+caller_ref <- "DeepVariant_Duroc"
+input_vcf <- read.vcfR("Inputfiles/MCB.clair3.cohort.biallelic.norm.vcf.gz")
+# input_vcf <- input_vcf[1:10000, ]
 
 # ensure all IDs are unique
-clair3_vcf@fix[, "ID"] <- paste0("var", seq_len(nrow(clair3_vcf@fix)))
+input_vcf@fix[, "ID"] <- paste0("var", seq_len(nrow(input_vcf@fix)))
 
 # Convert to tidy data format
-tidy_clair3_vcf <- vcfR2tidy(
-  clair3_vcf,
+tidy_input_vcf <- vcfR2tidy(
+  input_vcf,
   single_frame = TRUE,
   format_fields = c("GT", "DP", "AD"),
   info_fields = c("AQ"),
   dot_is_NA = FALSE # preserve "./." in gt_GT -- default behavior is to convert them to NA
 )
-remove(clair3_vcf)
+remove(input_vcf)
 
 # de-convert NAs back to "./." -- vcf2tidy() does this by default and as far as I can tell there is not an option to suppress this behavior
-tidy_clair3_vcf$dat <- tidy_clair3_vcf$dat %>% mutate(gt_GT = ifelse(is.na(gt_GT), "./.", gt_GT))
+tidy_input_vcf$dat <- tidy_input_vcf$dat %>% mutate(gt_GT = ifelse(is.na(gt_GT), "./.", gt_GT))
 
 # Add unique variant ID variable
-tidy_clair3_vcf$dat <- tidy_clair3_vcf$dat %>% mutate(variant_id = paste(CHROM, POS, REF, ALT, sep = "_"))
+tidy_input_vcf$dat <- tidy_input_vcf$dat %>% mutate(variant_id = paste(CHROM, POS, REF, ALT, sep = "_"))
 
 # Reshape to wide format
-tidy_clair3_vcf$dat$Indiv[tidy_clair3_vcf$dat$Indiv == "GC64-23_008_MCB_FSDC"] <- "MCB" # Rename for simplicity
-tidy_clair3_vcf$dat$Indiv <- factor(tidy_clair3_vcf$dat$Indiv) # pre-factor for speed
+tidy_input_vcf$dat$Indiv[tidy_input_vcf$dat$Indiv == "GC64-23_008_MCB"] <- "MCB" # Rename for simplicity (only in MCB)
+tidy_input_vcf$dat$Indiv <- factor(tidy_input_vcf$dat$Indiv) # pre-factor for speed
 
-wide <- tidy_clair3_vcf$dat %>%
+wide <- tidy_input_vcf$dat %>%
   dplyr::select(variant_id, CHROM, POS, REF, ALT, Indiv, gt_GT, gt_DP, gt_AD, QUAL) %>%
   tidyr::pivot_wider(names_from = Indiv, values_from = c(gt_GT, gt_DP, gt_AD, QUAL))
 
-remove(tidy_clair3_vcf)
+remove(tidy_input_vcf)
 
 # Separate allele depths into REF and ALT
 wide <- wide %>% 
-  separate(gt_AD_MCB, into = c("AD_REF_MCB", "AD_ALT_MCB"), sep = ",", convert = TRUE) %>%
+  separate(paste0("gt_AD_", sample), into = c(paste0("AD_REF_", sample), paste0("AD_ALT_", sample)), sep = ",", convert = TRUE) %>%
   separate(gt_AD_Yuc104F, into = c("AD_REF_Yuc104F", "AD_ALT_Yuc104F"), sep = ",", convert = TRUE)
 
 ## add var_caller & ref_genome
-wide$caller_ref <- "DeepVariant_Duroc"
+wide$caller_ref <- caller_ref
 
 #---------------------------------------------------------------------------#
 ##### Identify & catalog problematic rows & enforce correct data types #####
@@ -58,10 +60,10 @@ wide$caller_ref <- "DeepVariant_Duroc"
 # Record rows where either GT col is multivalued
 wide_bad <- wide %>% 
   mutate(row = row_number()) %>%
-  filter(map_int(gt_GT_MCB, length) > 1 |
+  filter(map_int(get(paste0("gt_GT_", sample)), length) > 1 |
            map_int(gt_GT_Yuc104F, length) > 1) %>%
   mutate(culprit = case_when(
-    map_int(gt_GT_MCB, length) > 1 ~ "gt_GT_MCB",
+    map_int(paste0("gt_GT_", sample), length) > 1 ~ paste0("gt_GT_", sample),
     map_int(gt_GT_Yuc104F, length) > 1 ~ "gt_GT_Yuc104F"
   ))
 
@@ -133,7 +135,7 @@ wide[ , (na_zero_cols) := lapply(.SD, function(x) fifelse(is.na(x), 0, x)),
       .SDcols = na_zero_cols ]
 
 #----------------------------------------------------------------------------------#
-##### Classify variants by their similarity/difference between Yuc104F & MCB #####
+##### Classify variants by their similarity/difference between Yuc104F & <sample> #####
 #----------------------------------------------------------------------------------#
 
 
@@ -150,7 +152,7 @@ zygosity_func <- function(gt) {
 
 wide <- wide %>% 
   mutate(
-    zygosity_MCB = sapply(gt_GT_MCB, zygosity_func),
+    !!paste0("zygosity_", sample) := sapply(get(paste0("gt_GT_", sample)), zygosity_func),
     zygosity_Yuc104F = sapply(gt_GT_Yuc104F, zygosity_func)
   )
 
@@ -198,7 +200,7 @@ for(i in seq_along(gt_cols)) {
   col_filt  <- paste0(suffs[i], "_filter")
   col_mod   <- paste0(col_gt, "_mod")
   
-  wide[, (col_mod) := fifelse( get(col_filt), get(col_gt), "./.")]. # if pass then use original genotype, else put ./.
+  wide[, (col_mod) := fifelse( get(col_filt), get(col_gt), "./.")] # if pass then use original genotype, else put ./.
 }
 
 
@@ -207,10 +209,22 @@ pass_cols <- grep("_pass_", names(wide), value = TRUE)
 wide[, (pass_cols) := NULL]
 
 #### MCB-specific variant counts ####
-# set variable for MCB-specific post-filtering
+## set variable for MCB-specific post-filtering
+# wide <- wide %>%
+#   mutate(
+#     !!paste0(sample, "_specific2") :=
+#       (.data[[paste0(sample, "_filter")]] == TRUE) &
+#       (Yuc104F_filter == TRUE) &
+#       (gt_GT_Yuc104F_mod %in% c("0/0", "./.", "0/.", "./0")) &
+#       !(.data[[paste0("gt_GT_", sample, "_mod")]] %in% c("0/0", "./.", "0/.", "./0"))
+#   )
+
 wide <- wide %>%
-  mutate(MCB_specific = gt_GT_Yuc104F_mod %in% c("0/0","./.", "0/.", "./0") &
-           !gt_GT_MCB_mod %in% c("0/0","./.","0/.", "./0") )
+  mutate(
+    !!paste0(sample, "_specific") := (gt_GT_Yuc104F_mod %in% c("0/0", "./.", "0/.", "./0")) &
+      !(.data[[paste0("gt_GT_", sample, "_mod")]] %in% c("0/0", "./.", "0/.", "./0"))
+  )
+
 
 ######################
 
@@ -345,5 +359,5 @@ wide <- wide %>%
   mutate(in_nonexonic_pc = !in_pc_exon & !in_pc_utr & in_intron_pc)
 
 
-fwrite(wide, file = "Results/DeepVariant_MCB_MasterTable_simplified.csv") 
+# fwrite(wide, file = paste0("Results/", strsplit(caller_ref, "_")[[1]][1] , "_", sample, "_MasterTable_simplified.csv"))
 
