@@ -107,22 +107,13 @@ wide <- wide %>%
 
 
 # Clean up chromosome names, add variant type, & make single variable for VC & ref genome combo
-get_variant_type <- function(ref, alt) {
-  if (nchar(ref) == 1 && nchar(alt) == 1) {
-    return("SNP")
-  } else if (nchar(ref) < nchar(alt)) {
-    return("Insertion")
-  } else if (nchar(ref) > nchar(alt)) {
-    return("Deletion")
-  } else {
-    return("Complex")
-  }
-}
+wide[, variant_type := fcase(
+  nchar(REF) == 1 & nchar(ALT) == 1, "SNP",
+  nchar(REF) < nchar(ALT), "Insertion",
+  nchar(REF) > nchar(ALT), "Deletion",
+  default = "Complex"
+)]
 
-wide <- wide %>% 
-  mutate(
-    variant_type = mapply(get_variant_type, REF, ALT),
-  )
 
 # remove variants in chrY and MT
 wide <- wide %>%
@@ -142,19 +133,19 @@ wide[ , (na_zero_cols) := lapply(.SD, function(x) fifelse(is.na(x), 0, x)),
 ########## Annotate Zygosity ###########
 
 # Annotate per-sample zygosities
-zygosity_func <- function(gt) {
-  if (is.na(gt)) return("other")
-  if (gt %in% c("0/1", "1/0")) return("het")
-  if (gt == "0/0") return("hom_ref")
-  if (gt == "1/1") return("hom_alt")
-  return("other")
-}
+wide[, paste0("zygosity_", sample) := fcase(
+  get(paste0("gt_GT_", sample)) %chin% c("0/1", "1/0"), "het",
+  get(paste0("gt_GT_", sample)) == "0/0", "hom_ref",
+  get(paste0("gt_GT_", sample)) == "1/1", "hom_alt",
+  default = "other"
+)]
 
-wide <- wide %>% 
-  mutate(
-    !!paste0("zygosity_", sample) := sapply(get(paste0("gt_GT_", sample)), zygosity_func),
-    zygosity_Yuc104F = sapply(gt_GT_Yuc104F, zygosity_func)
-  )
+wide[, zygosity_Yuc104F := fcase(
+  gt_GT_Yuc104F %chin% c("0/1", "1/0"), "het",
+  gt_GT_Yuc104F == "0/0", "hom_ref",
+  gt_GT_Yuc104F == "1/1", "hom_alt",
+  default = "other"
+)]
 
 
 ######################
