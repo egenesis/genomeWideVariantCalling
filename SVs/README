@@ -1,0 +1,44 @@
+# Convert SURVIVOR multi-sample multi-caller VCF to tsv
+
+(ont_ass) ubuntu@ip-192-168-10-42:/data5/sv/sam_SV/Duroc/union_pbsv_svim-asm
+# input VCF is multi-caller mult-sample VCF from SURVIVOR merged from union of 2 callers pbsv and SVIM-asm
+VCF="/data5/sv/sam_SV/Duroc/union_pbsv_svim-asm/Yuc104F_22318_to_Ssc11.1_pbsv_svimAsm_Survivor1100_union.vcf"
+
+cat <(grep "^#CHROM" $VCF | sed 's/#//' -) <(grep -v "^#" $VCF) > $(dirname $VCF)/$(basename $VCF .vcf)_VCF_data.tsv
+
+Run Feng_union_pbsv_svimAsm_22318-SV-comparison_count_final.R
+# I merged Sam's two scripts into one
+/home/rstudio/genome-wide-SV/Feng_union_pbsv_svimAsm_22318-SV-comparison_count_final.R
+
+
+--> output folder: /home/rstudio/genome-wide-SV/22318
+	· Feng_Processed_union_pbsv_svimAsm_Yuc104F_var_22318_SVs.csv
+	· Feng-22318-unionof2-SV-filtering-summary.csv
+	· Feng_22318_unionOf2_full-filtered_no_size_man_cur.csv
+	· VCF_prep/Feng_22318_unionOf2_full-filtered_no_size.csv
+
+# convert "full-filtered_no_size_man_cur.csv"  to VCF that is used for VEP with SV IDs
+rstudio@ip-192-168-10-208:~/genome-wide-SV/22318$ pwd
+/home/rstudio/genome-wide-SV/22318
+
+cut -f 3 -d, Feng_22318_unionOf2_full-filtered_no_size_man_cur.csv | tail -n +2 > Feng_22318_unionOf2_full-filtered_no_size_man_cur.IDs.txt
+
+wc -l Feng_22318_unionOf2_full-filtered_no_size_man_cur.IDs.txt
+270
+
+# extract VCF using the 347 IDs from the original multi-sample multi-caller VCF
+# IP208
+VCF="/data5/sv/sam_SV/Duroc/union_pbsv_svim-asm/Yuc104F_22318_to_Ssc11.1_pbsv_svimAsm_Survivor1100_union.vcf"
+
+ (ont_ass) ubuntu@ip-192-168-10-208:/home/rstudio/genome-wide-SV/22318$
+bcftools view -i 'ID=@Feng_22318_unionOf2_full-filtered_no_size_man_cur.IDs.txt' $VCF -Ov -o $(dirname $VCF)/$(basename $VCF .vcf)_filtered_270variants.vcf
+
+# OUTPUT VCF of 22318 called by union of pbsv and SVIM-asm for VEP is: /data5/sv/sam_SV/Duroc/union_pbsv_svim-asm/Yuc104F_22318_to_Ssc11.1_pbsv_svimAsm_Survivor1100_union_filtered_270variants.vcf
+
+ grep -v "#" Yuc104F_22318_to_Ssc11.1_pbsv_svimAsm_Survivor1100_union_filtered_270variants.vcf | wc -l
+270
+# not like MCB, 22318 has no duplicated IDs
+
+
+
+
