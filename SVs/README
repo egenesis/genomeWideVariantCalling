@@ -39,6 +39,13 @@ bcftools view -i 'ID=@Feng_22318_unionOf2_full-filtered_no_size_man_cur.IDs.txt'
 270
 # not like MCB, 22318 has no duplicated IDs
 
+# remove TRA, BND and INV from this VCF to prepare VEP input
+VCF="/data5/sv/sam_SV/Duroc/union_pbsv_svim-asm/Yuc104F_22318_to_Ssc11.1_pbsv_svimAsm_Survivor1100_union.vcf"
+
+bcftools view -i 'INFO/SVTYPE="INS" || INFO/SVTYPE="DEL"  || INFO/SVTYPE="DUP"' $(basename $VCF .vcf)_filtered_270variants.vcf  -Ov -o $(basename $VCF .vcf)_filtered_ins_del_dup.vcf
+
+grep -v "#" -c Yuc104F_22318_to_Ssc11.1_pbsv_svimAsm_Survivor1100_union_filtered_ins_del_dup.vcf
+201 # correct, because 60 INV and TRAs were in 270 variants
 
 
 
