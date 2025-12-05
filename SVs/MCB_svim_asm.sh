@@ -61,10 +61,11 @@ conda activate ont_ass
 cd /data5/sv/svim_asm
 prefix="Yuc104F_GC64-23_008_MCB_FSDC_to_Ssc11.1_svim_asm"
 
-bcftools query -f'%CHROM %POS %SVTYPE %ID %SVLEN %END[ %GT]\n' ${prefix}.vcf |  awk '{if ($NF == $(NF-1)) next} 1' - |  awk '{if (($NF == "0/1" && $(NF-1) == "1/0") || ($NF == "1/0" && $(NF-1) == "0/1")) next} 1' - >  ${prefix}.diffgenotype.tsv
+# modify VCF to tsv to filter out by Yuc104F and MCB genotype
+# bcftools query -f'%CHROM %POS %SVTYPE %ID %SVLEN %END[ %GT]\n' ${prefix}.vcf |  awk '{if ($NF == $(NF-1)) next} 1' - |  awk '{if (($NF == "0/1" && $(NF-1) == "1/0") || ($NF == "1/0" && $(NF-1) == "0/1")) next} 1' - >  ${prefix}.diffgenotype.tsv
 
 
 # the chr6 26kb del in OGM, two 20kb inv in PBSV. In svim-asm, one inv is called
-6 77074997 INV svim_asm.INV.44 20452 77095449 ./. 1/0
+# 6 77074997 INV svim_asm.INV.44 20452 77095449 ./. 1/0
 
 
